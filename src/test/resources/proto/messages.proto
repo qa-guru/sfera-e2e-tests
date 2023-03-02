@@ -1,0 +1,347 @@
+// "v1.0.5-stage-0e376a6";
+
+syntax = "proto3";
+package service;
+option go_package = "./;service";
+
+import "google/protobuf/timestamp.proto";
+import "google/api/annotations.proto";
+//import "pkg/service/content_types.proto";
+
+option java_package = "zona.sfera.ui";
+option java_outer_classname = "MessangerProto";
+
+service Chat {
+  rpc Stream(stream StreamRequest) returns (stream StreamResponse) {
+    option (google.api.http) = {
+      get : "/v1/chat/stream"
+    };
+  }
+  rpc SendMessage(Message) returns (MessageResponse) {
+    option (google.api.http) = {
+      post : "/v1/chat/stream"
+      body : "*"
+    };
+  }
+  rpc SendSystemMessage(Message) returns (MessageResponse) {}
+  rpc SendServiceMessage(ServiceMessage) returns (ServiceMessageResponse) {}
+  rpc Sync(SyncRequest) returns (stream Message) {}
+  rpc SyncSingleChatById(SRChatMessages) returns (stream Message) {}
+  rpc SyncLastMessagesInListOfChats(SRLastMessagesInEachChatRequest)
+      returns (stream Message) {}
+}
+
+enum StreamActionErrors {
+  NOT_FOUND_CHAT = 0;
+  YOU_NAVE_NOT_PERMISSIONS = 1;
+  NOT_AUTHORIZED = 2;
+  BAD_REQUEST = 3;
+}
+
+message StreamResponse {
+  google.protobuf.Timestamp timestamp = 1;
+  uint32 total = 2;
+
+  oneof event {
+    Message message = 3;
+    AuthReponse auth = 4;
+    StatusReponse status = 5;
+    OnlineStatusReponse online = 6;
+    ServiceMessage service_message = 7;
+    ErrorReponse error = 8;
+  }
+}
+
+message StreamRequest {
+  oneof event {
+    Message message = 1;
+    SyncRequest sync = 2; // depricated
+    OnlineStatusRequest status = 3;
+    ServiceMessage service_message = 4;
+    SRLastMessagesInEachChatRequest last_messages = 5;
+    SRChatMessages chat_messages = 6;
+  }
+}
+
+enum MessageTypes {
+  TEXT = 0;
+  FORWARD = 1;
+  QUOTE = 2;
+  CHRONIC = 3;
+  PROFILE = 4;
+  PROFILE_PHOTO = 5;
+  MOMENT = 6;
+  NEWS = 7;
+  CHOOSE = 8;
+  SYSTEM = 9;
+  FILE = 10;
+  AUDIO = 11;
+  VIDEO = 12;
+  IMAGE = 13;
+  JL_PROFILE = 14;
+  JL_VACANCY = 15;
+  LINK = 16;
+}
+
+enum MessageStatuses {
+  RECIEVED = 0;
+  READED = 1;
+  ERROR = 2;
+}
+
+enum ChatTypes {
+  DIRECT = 0;
+  GROUP = 1;
+  CHANNEL = 2;
+}
+
+enum ServiceEvent {
+  TYPING = 0;
+  ONLINE = 1;
+  PROFILE_CHANGED = 2;
+  MOMENT_CHANGED = 3;
+  GIFT_CHANGED = 4;
+  CHAT_CHANGED = 5;
+  CHAT_CREATED = 6;
+  CHAT_REMOVED = 7;
+  CHAT_CLEANED = 8;
+  MESSAGE_REMOVED = 9;
+  MESSAGE_CHANGED = 10;
+  PING = 11;
+  PONG = 12;
+}
+
+message ServiceMessage {
+  int64 id = 1;
+  ServiceEvent type = 2;
+  bytes data = 3;
+  int64 to = 4;
+  int64 from = 5;
+  google.protobuf.Timestamp timestamp = 6;
+}
+
+message ServiceMessageResponse {
+  ServiceMessage msg = 1;
+  google.protobuf.Timestamp timestamp = 2;
+}
+
+message Message {
+  message Meta {
+    // @gotags: bson:"chat_avatar"
+    string chat_avatar = 1;
+    // @gotags: bson:"user_avatar"
+    string user_avatar = 2;
+    // @gotags: bson:"chat_name"
+    string chat_name = 3;
+    // @gotags: bson:"user_name"
+    string user_name = 4;
+  }
+
+  message SystemInfo {
+    // @gotags: bson:"ver"
+    string ver = 1;
+  }
+
+
+  // @gotags: bson:"recipient"
+  repeated int64 recipient = 1; // system field
+  // @gotags: bson:"id"
+  string id = 2;
+  // @gotags: bson:"from"
+  int64 from = 3; // user who sent message
+  // @gotags: bson:"to"
+  int64 to = 4; // a chat id or a contact id who was receive this the message
+  // @gotags: bson:"type"
+  MessageTypes type = 5;
+  // @gotags: bson:"status"
+  MessageStatuses status = 6;
+  // @gotags: bson:"chat_type"
+  ChatTypes chat_type = 7;
+  // @gotags: bson:"chat_id"
+  int64 chat_id = 8;
+  // @gotags: bson:"is_favorite"
+  bool is_favorite = 9;
+  // @gotags: bson:"views"
+  int64 views = 10; // views counter
+  // @gotags: bson:"text"
+  string text = 11;
+  // @gotags: bson:"content"
+  repeated int64 content = 12;
+  // @gotags: bson:"forward"
+  MTForwardMessage forward = 13;
+  // @gotags: bson:"quote"
+  MTQuoteMessage quote = 14;
+  // @gotags: bson:"chronicle"
+  MTChronicle chronicle = 15;
+  // @gotags: bson:"profile"
+  MTProfile profile = 16;
+  // @gotags: bson:"profile_photo"
+  MTProfilePhoto profile_photo = 17;
+  // @gotags: bson:"moment"
+  MTMoment moment = 18;
+  // @gotags: bson:"news"
+  MTNews news = 19;
+  // @gotags: bson:"choose"
+  MTChoose choose = 20;
+  // @gotags: bson:"system"
+  MTSystem system = 21;
+  // @gotags: bson:"created_at"
+  google.protobuf.Timestamp created_at = 22;
+  // @gotags: bson:"updated_at"
+  google.protobuf.Timestamp updated_at = 23;
+  // @gotags: bson:"deleted_at"
+  google.protobuf.Timestamp deleted_at = 24;
+  // @gotags: bson:"oID"
+  string oID = 25; // object id for platforms
+  // @gotags: bson:"meta"
+  Meta meta = 26; // extra data
+  // @gotags: bson:"sysinfo"
+  SystemInfo sysinfo = 27; // extra system data
+}
+
+message MessageResponse {
+  google.protobuf.Timestamp timestamp = 1;
+  Message message = 2;
+}
+
+message AuthReponse {
+  int32 status = 1;
+  string msg = 2;
+}
+
+message ErrorReponse {
+  int32 status = 1;
+  string msg = 2;
+  StreamActionErrors type = 3;
+  Message item = 4;
+}
+
+message StatusReponse {
+  int32 status = 1;
+  string msg = 2;
+  bytes additional_params = 3;
+}
+
+message OnlineStatusReponse { map<int64, bool> statuses = 1; }
+message OnlineStatusRequest { repeated int64 ids = 1; }
+
+message SyncRequest {
+  string last_message_uuid = 1;
+  bool all = 2;
+  uint32 limit = 3;
+}
+
+enum MTFileType {
+  FTYPE_FILE = 0;
+  FTYPE_AUDIO = 1;
+  FTYPE_VIDEO = 2;
+  FTYPE_IMAGE = 3;
+}
+
+message MTText {
+  string text = 1;
+  repeated string edit_history = 2;
+}
+
+message MTMediaAudio {
+  string link = 1;
+  int32 duration = 2;
+  repeated int32 sound_wave = 3;
+}
+
+message MTMediaFile {
+  message File {
+    int64 size = 1;
+    string resolution = 2;
+    string mime = 3;
+    MTFileType type = 4;
+    repeated string preview = 5;
+    string original = 6;
+  }
+  repeated File items = 1;
+}
+
+message MTForwardMessage {
+  int64 from = 1;
+  int64 chat_id = 2;
+  string avatar = 3;
+  string nickname = 4;
+  string forward_id = 5;
+  MessageTypes type = 6;
+}
+
+message MTQuoteMessage {
+  string oID = 1;
+  MessageTypes type = 2;
+  string text = 3;
+  string nickname = 4;
+}
+
+message MTChronicle {
+  int64 id = 1;
+  string link = 2;
+}
+
+message MTProfile {
+  int64 id = 1;
+  string avatar = 2;
+  string nickname = 3;
+}
+
+message MTProfilePhoto {
+  int64 id = 1;
+  string preview = 2;
+  string ogirinal = 3;
+}
+
+message MTMoment {
+  int64 id = 1;
+  string link = 2;
+}
+
+message MTNews {
+  // @gotags: bson:"message_id"
+  string message_id = 1;
+}
+
+message MTChoose {
+  int64 id = 1;
+  string link = 2;
+}
+
+/*
+
+*/
+
+message MTSystem {
+  enum TypeOf {
+    USER_HAS_LEAVE_CHAT = 0; // Пользователь Никнейм покинул чат
+    USER_HAS_ENTER_CHAT = 1; // Пользователь Никнейм присоединился к чату
+    INBOUND_CALL = 2;        // Входящий звонок
+    MISSING_CALL = 3;        // Пропущенный звонок
+    OUTBOUND_CALL = 4;       // Исходящий звонок
+    YOU_HAS_BEEN_BLOCKED = 5; // Пользователь Никнейм заблокировал чат.
+    // Сообщения и звонки между вами запрещены.
+    NOT_IN_CONTACT_WHAT_YOU_DO = 6; // Данного пользователя нет в ваших
+    // контактах. Что вы хотите сделать?
+    MESSAGE_DELETED = 7;              // Сообщение удалено
+    YOUVE_BEEN_DROPPED_FROM_CHAT = 8; // Вы удалены из чата
+    CHAT_IS_EMPTY = 9; // В этом чате нет сообщений
+    CHAT_E2E_ENC = 10; // Передача данных защищена сквозным шифрованием.
+    // Только пользователи, участвующие в общении, имеют
+    // доступ к сообщениям и звонкам.
+  }
+
+  // @gotags: bson:"type"
+  TypeOf type = 1;
+  // @gotags: bson:"data"
+  bytes data = 2;
+}
+
+message SRLastMessagesInEachChatRequest { repeated int64 chat_ids = 1; }
+
+message SRChatMessages {
+  int64 chat_id = 1;
+  string message_id = 2;
+  uint32 limit = 3;
+}
